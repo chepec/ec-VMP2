@@ -1,0 +1,6 @@
+*.info
+*.RData
+*.Rdeprecated
+*.Rhistory
+*.Rhistory.save
+*.ROLD
