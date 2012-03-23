@@ -57,6 +57,8 @@ amp2df <- function(datafilename, wearea = 1) {
                                     "n_HeaderLines",        "^Nb header lines",
                                     "VMPChannel",           "^Run on channel",
                                     "Time",                 "^Acquisition started on",
+                                    "Device",               "^Device",
+                                    "Computer",             "^Address",
                                     "ElectrodeMaterial",    "^Electrode material",
                                     "InitialState",         "^Initial state",
                                     "Electrolyte",          "^Electrolyte",
