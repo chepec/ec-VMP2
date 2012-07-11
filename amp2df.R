@@ -18,29 +18,37 @@ amp2df <- function(datafilename, wearea = 1) {
    ##         wearea: (optional) area of working electrode (in square centimeters)
    ## Value: (nneds to be updated)
    ##   Dataframe with the following columns:
-   ##   $ sampleid           : chr
-   ##   $ sid                : chr
-   ##   $ DateTime           : chr
-   ##   $ WEarea             : num [square cm]
-   ##   $ mode               : num
-   ##   $ oxred              : num
-   ##   $ error              : num
-   ##   $ controlchanges     : num
-   ##   $ Nschanges          : num
-   ##   $ counterinc         : num
-   ##   $ time.second        : num [seconds]
-   ##   $ control.volt       : num [volt]
-   ##   $ ewe.volt           : num [volt]
-   ##   $ current.mA         : num [mA]
-   ##   $ charge.mAh         : num [mA hour == 3600 mC]
-   ##   $ currentdensity     : num [mA per square cm]
-   ##   $ timediff           : num [seconds]
-   ##   $ currentdiff        : num [mA]
-   ##   $ currentdensitydiff : num [mA per square cm]
-   ##   $ dIdt               : num [mA per second]
-   ##   $ didt               : num [mA per square cm per second]
-   ##   $ charge             : num [mC]
-   ##   $ chargedensity      : num [mC per square cm]
+   ##   $ sampleid              : chr
+   ##   $ sid                   : chr
+   ##   $ DateTime              : chr
+   ##   $ WEarea                : num [square cm]
+   ##   $ mode                  : num
+   ##   $ oxred                 : num
+   ##   $ error                 : num
+   ##   $ controlchanges        : num
+   ##   $ Nschanges             : num
+   ##   $ counterinc            : num
+   ##   $ time.second           : num [seconds]
+   ##   $ control.volt          : num [volt]
+   ##   $ ewe.volt              : num [volt]
+   ##   $ current               : num [ampere]
+   ##   $ current.mA            : num [milli ampere]
+   ##   $ charge                : num [coulomb]
+   ##   $ charge.mC             : num [milli coulomb]
+   ##   $ charge.mAh            : num [milli ampere hour == 3600 milli coulomb]
+   ##   $ chargedensity         : num [coulomb per square cm]
+   ##   $ chargedensity.mC      : num [milli coulomb per square cm]
+   ##   $ currentdensity        : num [ampere per square cm]
+   ##   $ currentdensity.mA     : num [milli ampere per square cm]
+   ##   $ timediff              : num [seconds]
+   ##   $ currentdiff           : num [ampere]
+   ##   $ currentdiff.mA        : num [milli ampere]
+   ##   $ currentdensitydiff    : num [ampere per square cm]
+   ##   $ currentdensitydiff.mA : num [milli ampere per square cm]
+   ##   $ dIdt                  : num [ampere per second]
+   ##   $ dIdt.mA               : num [milli ampere per second]
+   ##   $ didt                  : num [ampere per square cm per second]
+   ##   $ didt.mA               : num [milli ampere per square cm per second]
    ##   +++ plus two parameter dataframes attached as attributes
    ##   > mstep.param
    ##   > vmp.param
@@ -225,16 +233,23 @@ amp2df <- function(datafilename, wearea = 1) {
                         "current.mA",
                         "charge.mAh")
    # Calculate current density
-   data.exp$currentdensity <- data.exp$current.mA / wearea
+   data.exp$currentdensity.mA <- data.exp$current.mA / wearea
+   data.exp$currentdensity <- 1E-3 * data.exp$currentdensity.mA
    # Calculate time diff and current diff
    data.exp$timediff <- c(data.exp$time.second[1], diff(data.exp$time.second))
-   data.exp$currentdiff <- c(data.exp$current.mA[1], diff(data.exp$current.mA))
-   data.exp$currentdensitydiff <- c(data.exp$currentdensity[1], diff(data.exp$currentdensity))
+   data.exp$currentdiff.mA <- c(data.exp$current.mA[1], diff(data.exp$current.mA))
+   data.exp$currentdiff <- 1E-3 * data.exp$currentdiff.mA
+   data.exp$currentdensitydiff.mA <- c(data.exp$currentdensity[1], diff(data.exp$currentdensity))
+   data.exp$currentdensitydiff <- 1E-3 * data.exp$currentdensitydiff.mA
    # Calculate differential of current and current density
+   data.exp$dIdt.mA <- data.exp$currentdiff.mA / data.exp$timediff
    data.exp$dIdt <- data.exp$currentdiff / data.exp$timediff
+   data.exp$didt.mA <- data.exp$currentdensitydiff.mA / data.exp$timediff
    data.exp$didt <- data.exp$currentdensitydiff / data.exp$timediff
    # Calculate charge and charge density
-   data.exp$charge <- 3600 * data.exp$charge.mAh # convert from mAh to mC
+   data.exp$charge.mC <- 3600 * data.exp$charge.mAh # converts from mAh to milli coulomb
+   data.exp$charge <- 1E-3 * data.exp$charge.mC
+   data.exp$chargedensity.mC <- data.exp$charge.mC / wearea
    data.exp$chargedensity <- data.exp$charge / wearea
    #
    # Convert time fields in mstep.param to seconds
