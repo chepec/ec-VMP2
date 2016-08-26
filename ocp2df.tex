@@ -1,0 +1,4 @@
+A rather complex little function. I attempted and failed to split the \texttt{tparam} dataframe up by its columns, and although that could be achieved (e.g., as vectors: \texttt{as.list(tparam)}, or as dataframes: \texttt{lapply(tparam, as.data.frame)}), the \texttt{structure(list(...), ...)} construct simply refused to accept either of them, and I ended up abandoning it in favour of a simple \texttt{data.frame(...)} followed by \texttt{names(tparam) <- ...}.
+
+Anyway, this function can handle arbitrary many OCP source files being supplied as the argument.
+It will return all of the data and parameters in one single dataframe.

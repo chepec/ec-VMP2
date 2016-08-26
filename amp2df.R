@@ -6,7 +6,7 @@ require(lubridate)
 ##################################################
 #################### amp2df ######################
 ##################################################
-amp2df <- function(datafilename, wearea = 1) {
+amp2df <- function(datafilename, wearea = NA) {
    ## Description:
    ##   Reads data from VMP2 potentiostat
    ##   and returns a dataframe with the data and some 
@@ -115,16 +115,16 @@ amp2df <- function(datafilename, wearea = 1) {
    vmp.param$value[which(vmp.param$parameter == "n_HeaderLines")] <- 
       sub("\\s+", "", vmp.param$value[which(vmp.param$parameter == "n_HeaderLines")])
    #
-   # Create a more resilient id (more unique)
-   sid <- paste(paste(int2padstr(ii = month(mdy_hms(vmp.param$value[which(vmp.param$parameter == "Time")])),
-                                 pchr="0",
-                                 w=2),
-                      int2padstr(ii=day(mdy_hms(vmp.param$value[which(vmp.param$parameter == "Time")])),
-                                 pchr="0",
-                                 w=2),
-                      sep = ""),
-                sampleid, 
-                sep = "-")
+   # Create a more resilient id (unique id, combination date + substrateid)
+   sid <- 
+      paste(paste0(year(mdy_hms(vmp.param$value[which(vmp.param$parameter == "Time")])) %% 100,
+                   int2padstr(ii = month(mdy_hms(vmp.param$value[which(vmp.param$parameter == "Time")])),
+                              pchr = "0",
+                              w = 2),
+                   int2padstr(ii = day(mdy_hms(vmp.param$value[which(vmp.param$parameter == "Time")])),
+                              pchr = "0",
+                              w = 2)),
+            sampleid, sep = "-")
    #
    # Multi-step parameter table
    mstep.param <- data.frame(stringsAsFactors = FALSE,
@@ -202,7 +202,9 @@ amp2df <- function(datafilename, wearea = 1) {
    }
    #
    #
-   chidata <- chifile[(as.numeric(vmp.param$value[which(vmp.param$parameter == "n_HeaderLines")]) + 1):length(chifile)]
+   chidata <- 
+      chifile[(as.numeric(vmp.param$value[
+         which(vmp.param$parameter == "n_HeaderLines")]) + 1):length(chifile)]
    # Replace decimal commas with dots
    chidata <- gsub(",", "\\.", chidata)
    zz <- textConnection(chidata, "r")
@@ -219,38 +221,51 @@ amp2df <- function(datafilename, wearea = 1) {
    close(zz)
    names(data.exp) <- c("sampleid",
                         "sid",
-                        "DateTime",
-                        "WEarea",
+                        "date",
+                        "we.area",
                         "mode",
                         "oxred",
                         "error",
                         "controlchanges",
                         "Nschanges",
                         "counterinc",
-                        "time.second",
-                        "control.volt",
-                        "ewe.volt",
-                        "current.mA",
-                        "charge.mAh")
-   # Calculate current density
-   data.exp$currentdensity.mA <- data.exp$current.mA / wearea
-   data.exp$currentdensity <- 1E-3 * data.exp$currentdensity.mA
+                        "time", # seconds
+                        "control.potential", # potentiat's applied control potential / volt
+                        "we.potential", # potential of WE / volt
+                        "current", # current / mA
+                        "charge") # charge / mAh
+   # Current density / mA
+   if (is.na(wearea)) {
+      data.exp$currentdensity <- data.exp$current
+   } else {
+      data.exp$currentdensity <- data.exp$current / wearea
+   }
+#    data.exp$currentdensity <- 1E-3 * data.exp$currentdensity.mA
    # Calculate time diff and current diff
-   data.exp$timediff <- c(data.exp$time.second[1], diff(data.exp$time.second))
-   data.exp$currentdiff.mA <- c(data.exp$current.mA[1], diff(data.exp$current.mA))
-   data.exp$currentdiff <- 1E-3 * data.exp$currentdiff.mA
-   data.exp$currentdensitydiff.mA <- c(data.exp$currentdensity[1], diff(data.exp$currentdensity))
-   data.exp$currentdensitydiff <- 1E-3 * data.exp$currentdensitydiff.mA
-   # Calculate differential of current and current density
-   data.exp$dIdt.mA <- data.exp$currentdiff.mA / data.exp$timediff
+   data.exp$timediff <- c(data.exp$time[1], diff(data.exp$time))
+   # current diff / mA
+   data.exp$currentdiff <- c(data.exp$current[1], diff(data.exp$current))
+#    data.exp$currentdiff <- 1E-3 * data.exp$currentdiff.mA
+   # current density diff / mA
+   data.exp$currentdensitydiff <- c(data.exp$currentdensity[1], diff(data.exp$currentdensity))
+#    data.exp$currentdensitydiff <- 1E-3 * data.exp$currentdensitydiff.mA
+   # Differential of current / mA s-1
    data.exp$dIdt <- data.exp$currentdiff / data.exp$timediff
-   data.exp$didt.mA <- data.exp$currentdensitydiff.mA / data.exp$timediff
+#    data.exp$dIdt <- data.exp$currentdiff / data.exp$timediff
+   # Differential of current density / mA s-1
    data.exp$didt <- data.exp$currentdensitydiff / data.exp$timediff
-   # Calculate charge and charge density
-   data.exp$charge.mC <- 3600 * data.exp$charge.mAh # converts from mAh to milli coulomb
-   data.exp$charge <- 1E-3 * data.exp$charge.mC
-   data.exp$chargedensity.mC <- data.exp$charge.mC / wearea
-   data.exp$chargedensity <- data.exp$charge / wearea
+#    data.exp$didt <- data.exp$currentdensitydiff / data.exp$timediff
+   # Charge / mC
+   data.exp$charge <- 3600 * data.exp$charge # converts from mAh to milli coulomb
+#    data.exp$charge <- 1E-3 * data.exp$charge.mC
+   # Charge density / mC cm-2
+   if (is.na(wearea)) {
+      data.exp$chargedensity <- data.exp$charge
+#       data.exp$chargedensity <- data.exp$charge
+   } else {
+      data.exp$chargedensity <- data.exp$charge / wearea
+#       data.exp$chargedensity <- data.exp$charge / wearea
+   }
    #
    # Convert time fields in mstep.param to seconds
    mstep.param[which(mstep.param$parameter == "ti"), extra.colnames] <- 
